@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "bundle_sha256": "01bbdc959f23213751d126e595b4f390d7239575a80c4800b8e62ddab8825306",
+  "cpu_fallback_enabled": true,
+  "reason": "Measured CPU correctness, agreement, zero label flips and <=1200s"
+}

@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# Model weights and exports (published as release assets)
+*.pt
+*.pth
+*.onnx
+*.h5
+sm_ensemble/
+
+# Data and outputs
+data/
+hackathon_dataset/
+predictions.csv
+*.zip
+
+# OS / local
+.DS_Store
+.runtime-temp/
