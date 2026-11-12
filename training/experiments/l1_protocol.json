@@ -1,0 +1,62 @@
+{
+  "experiment": "L1-v1 GCE follow-up",
+  "recorded_date_IST": "2026-11-01",
+  "timing": "After P1/P2 completion and verification; before any L1 fitting or L1 score",
+  "authorization": "User chose the 8-fit option on 1 November 2026 IST; launch still requires <private access>",
+  "e1_protocol_sha256": "ad0f1f75abac558dca4a2e1459463b8ce71200ad7b56c0bb7acb82cbfad8d1e8",
+  "p1_protocol_sha256": "2fc03bea758da63d5f6504d01963e283aa5484fab3b21c0fb5300297186107ef",
+  "trigger": "P2 promoted gce_q07 (screen mean delta J0.4 +0.01530, original +0.01109 on folds 0,1); smooth_01 failed",
+  "recipe": {
+    "epochs": 20,
+    "train_batch_size": 32,
+    "eval_batch_size": 64,
+    "backbone_lr": 0.0001,
+    "head_lr": 0.001,
+    "weight_decay": 0.01,
+    "warmup_epochs": 2,
+    "ema_decay": 0.999,
+    "input_size": 224,
+    "inference_precision": "FP32, TF32 disabled, FP64 sigmoid",
+    "split_manifest_sha256": "995e2185f6fd8f6303c58ff58b6e421a9ec563cf58e094e9ddd19b7fcc85abfc"
+  },
+  "loss": {"gce_q07": "mean(-expm1(0.7*logsigmoid((2*y-1)*z.float()))/0.7), FP32 loss arithmetic; identical code to P2"},
+  "jobs": [
+    {"stage": "l1", "fold": 2, "architecture": "convnext_tiny", "seed": 17, "loss": "gce_q07"},
+    {"stage": "l1", "fold": 3, "architecture": "convnext_tiny", "seed": 17, "loss": "gce_q07"},
+    {"stage": "l1", "fold": 4, "architecture": "convnext_tiny", "seed": 17, "loss": "gce_q07"},
+    {"stage": "l1", "fold": 0, "architecture": "swin_t", "seed": 17, "loss": "gce_q07"},
+    {"stage": "l1", "fold": 1, "architecture": "swin_t", "seed": 17, "loss": "gce_q07"},
+    {"stage": "l1", "fold": 2, "architecture": "swin_t", "seed": 17, "loss": "gce_q07"},
+    {"stage": "l1", "fold": 3, "architecture": "swin_t", "seed": 17, "loss": "gce_q07"},
+    {"stage": "l1", "fold": 4, "architecture": "swin_t", "seed": 17, "loss": "gce_q07"}
+  ],
+  "evaluation_epochs": [20],
+  "max_wall_seconds": 10800,
+  "reused_fits": {
+    "ConvB": "Conv17 BCE: E1 folds 0,1; P1-v2 folds 2,3,4",
+    "SwinB": "Swin17 BCE: E1 folds 0,1; P1-v2 folds 2,3,4",
+    "ConvG_screen": "Conv17 GCE: P2 folds 0,1"
+  },
+  "candidates": {
+    "A": ["ConvB", "SwinB"],
+    "C_L": ["ConvG"],
+    "P_L": ["ConvG", "SwinB"],
+    "A_L": ["ConvG", "SwinG"]
+  },
+  "combination": "equal saved-logit mean followed by FP64 sigmoid; unchanged from P1",
+  "gates": {
+    "step1_confirmation": "ConvG minus ConvB on folds 2,3,4: mean delta J0.4 >= 0.003, at least 2 of 3 strictly positive, mean delta original AUC >= 0. Failure: keep A and stop.",
+    "step2_ensemble_eligibility": "For X in {P_L, A_L}: X minus A mean delta J0.4 > 0 over all five folds and > 0 over folds 2,3,4; at least 4 of 5 folds strictly positive; mean delta original AUC over five folds >= 0. Also X minus C_L mean delta J0.4 >= 0.003 with at least 4 of 5 strictly positive.",
+    "step3_choice": "Both eligible: choose A_L unless P_L exceeds A_L by more than 0.002 mean J0.4 over five folds. One eligible: that one. None eligible: C_L replaces A only if C_L minus A mean delta J0.4 > 0 over five and over folds 2,3,4, at least 4 of 5 strictly positive, mean delta original >= 0; otherwise keep A.",
+    "no_other_choices": "No q tuning, weights, temperatures, TTA, extra seeds, probability-mean selection or further losses."
+  },
+  "analysis": {
+    "location": "Local CPU, scripts/analyze_l1.py, from received prediction files",
+    "bootstrap_draws": 2000,
+    "bootstrap_seed": 20261102,
+    "unit": "Paired source groups resampled within fold, identical draws across candidates; reported, not gating",
+    "subsets": ["all five", "folds 2,3,4", "folds 0,1"],
+    "limits": "Development evidence. Folds 0,1 were used for P2 screening of ConvG; all five were used for P1 structure selection. Conditional data uncertainty only."
+  },
+  "exclusions": ["H before written final-procedure freeze", "test pixels", "local GPU", "new augmentation/TTA/resolution/capacity search", "publication/submission/purchases"]
+}

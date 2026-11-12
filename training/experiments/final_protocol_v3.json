@@ -1,0 +1,162 @@
+{
+  "experiment": "F1-final-v3",
+  "frozen_date_IST": "2026-11-01",
+  "intended_execution_date_IST": "2026-11-02",
+  "selected": "CT_SS",
+  "status": "written procedure freeze before H; X1 gates and timing gate applied before this file was written",
+  "members": [
+    {
+      "architecture": "convnext_tiny",
+      "seed": 17
+    },
+    {
+      "architecture": "swin_s",
+      "seed": 17
+    }
+  ],
+  "member_seed_count": 1,
+  "seed_rationale": "One seed per architecture is the tested A_L procedure. P1 seed control did not beat the architecture pair. More seeds add untested cost and change the selected procedure; no H-driven seed changes.",
+  "recipe": {
+    "epochs": 20,
+    "train_batch_size": 32,
+    "eval_batch_size": 64,
+    "backbone_lr": 0.0001,
+    "head_lr": 0.001,
+    "weight_decay": 0.01,
+    "warmup_epochs": 2,
+    "ema_decay": 0.999,
+    "input_size": 224,
+    "inference_precision": "FP32, TF32 disabled, FP64 sigmoid",
+    "split_manifest_sha256": "995e2185f6fd8f6303c58ff58b6e421a9ec563cf58e094e9ddd19b7fcc85abfc"
+  },
+  "loss": "gce_q07",
+  "gce_q": 0.7,
+  "augmentation": "Unchanged e1_transforms.training_view A1-light; horizontal flip 0.5; corruption probability 0.35. No new TTA.",
+  "rng_namespace_fold": 0,
+  "rng_note": "Full-pool and all-data fits each reset seed 17 and use fold=0 for existing per-image augmentation and epoch shuffle. Full dataset membership changes only the number/order of minibatches.",
+  "initialization": "Fresh named torchvision ImageNet1K_V1 weights in ~/x1/weights on the primary host. Full SHA-256 pinned: convnext_tiny 983f1562536e84ff750a1576fb08e54de751dbf2e17c0d8a4a13704341fdcd3d, swin_s 5e29d889356a51648611f542380eb4f3c4b4c84dc61933cdfbd2afc14a8235b2 (identical on every X1 host). The bootstrap performs the one approved Swin-S download before any fit; training refuses downloads and never uses development-trained checkpoints.",
+  "fit_stages": [
+    {
+      "stage": "full_pool",
+      "images": 5950
+    },
+    {
+      "stage": "all_data",
+      "images": 7000
+    }
+  ],
+  "sequence": [
+    "fit full_pool ConvNeXt",
+    "fit full_pool Swin-S",
+    "commit one H readout",
+    "fit all_data ConvNeXt",
+    "fit all_data Swin-S",
+    "pool-only functional sanity",
+    "final bundle release checks"
+  ],
+  "inference": {
+    "combination": "logit_mean",
+    "member_weights": [
+      0.5,
+      0.5
+    ],
+    "precision": "fp32",
+    "sigmoid": "float64",
+    "TF32": false,
+    "threshold": 0.5,
+    "temperature": 1.0,
+    "batch_size": 64,
+    "workers": 0
+  },
+  "holdout": {
+    "images": 1050,
+    "suite_conditions_total": 54,
+    "suite": "original + 51 weighted variants + 2 unweighted diagnostic masks, unchanged e1_transforms.conditions()",
+    "bootstrap_draws": 2000,
+    "bootstrap_seed": 20261102,
+    "bootstrap_unit": "source group; identical paired draws for both members and ensemble",
+    "report": [
+      "original AUC",
+      "variant proxy R",
+      "J04 proxy",
+      "all condition AUCs",
+      "family AUCs",
+      "F1 at 0.5",
+      "confusion",
+      "paired conditional group bootstrap"
+    ],
+    "adaptation": "NONE. Report all results as-is, regardless of performance. No threshold, seed, member, loss, epoch, augmentation, averaging or calibration change.",
+    "failure": "Mark readout started before first H decode. Interrupted readout without committed predictions stops for a documented functional repair; no automatic rerun. Completed immutable predictions may be reanalyzed without model reevaluation. Never unseal H to diagnose low performance."
+  },
+  "functional_failure_policy": "Fail closed for hash, identity, decoding, finite-value, row, replay or environment errors. Preserve attempts and all outputs. Before H, interrupted fits restart identical original initialization. After H, all-data interruption may restart the identical fixed fit only. A code-only repair requires a new version and an explicit incident record; H cannot justify scientific changes. No fallback to a better-looking procedure.",
+  "sanity_gate": "All-data checkpoints finite, correct architectures/shapes and identity, full pool-only fixture rows/IDs and finite [0,1] probabilities, labels match fixed threshold, reload/replay verified. No in-sample AUC or accuracy threshold and no generalization claim.",
+  "release": {
+    "fixture_images": 3000,
+    "fixture_partition": "pool",
+    "fixture_selection": "lexicographically sorted image IDs, first 3000",
+    "cold_gpu_processes": 3,
+    "gpu_timeout_seconds": 600,
+    "cpu_processes": 1,
+    "cpu_timeout_seconds": 1800,
+    "cpu_fallback_max_seconds": 1200,
+    "cpu_max_probability_difference": 1e-05,
+    "cpu_max_label_flips": 0,
+    "fallback": "Enable CUDA-unavailable CPU fallback only if exact final bundle CPU pass valid, <=1200s, max score difference <=1e-5 and zero label flips. Verify actual CUDA-unavailable auto path in a separate bounded process against CPU CSV bytes. Otherwise default requires CUDA; explicit CPU diagnostics remain possible. Never catch arbitrary CUDA runtime failures.",
+    "cache": "Fresh processes, OS file cache not cleared. Not disk-cold timing.",
+    "timing_claim": "Measured 5060 Ti only. T4 remains unverified.",
+    "undecodable_policy": "Fail visibly with offending filename, no missing-row success, placeholder probabilities, silent filtering or PIL truncated-image permissiveness. Replace an existing CSV atomically only after complete successful inference, with a stderr notice. On failure preserve previous bytes and exit nonzero; previous CSV is not evidence of success."
+  },
+  "max_wall_seconds": 14400,
+  "manifest_hashes": {
+    "frozen_split": "995e2185f6fd8f6303c58ff58b6e421a9ec563cf58e094e9ddd19b7fcc85abfc",
+    "pool": "30f7bb575793da6ab0b119abdaa96b8377bc44645de134035517a09bc0f75c85",
+    "full": "bdec1c75e68081f388e64e871be43c86865df22c51b003c8ca9cf213dcbcb5db"
+  },
+  "development_protocol_hashes": {
+    "e1": "ad0f1f75abac558dca4a2e1459463b8ce71200ad7b56c0bb7acb82cbfad8d1e8",
+    "p1": "2fc03bea758da63d5f6504d01963e283aa5484fab3b21c0fb5300297186107ef",
+    "l1": "b05689a738fde3afd3f90acd4eb5dec2319cc1b2ba553b4ae44911fcaf550c8e",
+    "x1": "6390994a878422a1079cadeb42308fc89c868b41902fc0a3a8d699004ce9e9b3"
+  },
+  "local_boundary": "Prepare archive with 5950 pool bytes and metadata only. Explicit future launcher invocation adds 1050 H bytes from known paths and verifies recorded hashes without decoding. Local dry-run never reads/stats H paths. No test files.",
+  "primary": {
+    "host": "<GPU_HOST>",
+    "user": "<USER>",
+    "gpu_uuid": "GPU-4f7dd3a1-55b5-1d57-d0ad-00186da5363e",
+    "gpu": "RTX 5060 Ti",
+    "remote_directory": "final-20261102-v3"
+  },
+  "environment": {
+    "python": "3.10.22",
+    "torch": "2.7.1+cu128",
+    "torchvision": "0.22.1+cu128",
+    "numpy": "2.2.6",
+    "pillow": "11.2.1"
+  },
+  "selection_limits": "All P folds informed adaptive development. Conditional bootstrap intervals do not correct selection or measure training variance. H tests the frozen full-pool procedure, not the later all-data weight realization.",
+  "supersedes_protocol_sha256": "df099eda130b0be3a8ecc88a06358c6db030dd3afcf090e3243f46cff188a45a",
+  "revision": "X1 selection: Swin-S replaces Swin-T. Recipe, loss, seed, inference numerics, judge interface, four fits, one H readout and release gates unchanged from final-v2. Final-v2 remains intact and unlaunched.",
+  "inference_interface": {
+    "batch_size": "Accept positive integer --batch_size; always compute batch64; warn if another value was requested.",
+    "workers": "Accept nonnegative integer --workers; always compute with zero workers; warn if another value was requested.",
+    "threshold": "Accept finite --threshold in [0,1]; always write labels using frozen0.5; warn if another value was requested.",
+    "existing_output": "Atomic replacement on successful complete inference. stderr notice before replacement; old bytes remain intact if inference or replacement fails.",
+    "release_invocations": [
+      "canonical defaults",
+      "canonical --batch_size32 --workers2 --threshold0.5 on existing output",
+      "alias --batch_size16 --workers1 --threshold0.9 on existing output; frozen0.5 still used"
+    ]
+  },
+  "x1_selection": {
+    "protocol": "experiments/x1_protocol_v2.json",
+    "protocol_sha256": "6390994a878422a1079cadeb42308fc89c868b41902fc0a3a8d699004ce9e9b3",
+    "analysis": "runs/x1-analysis-final-choice.json",
+    "analysis_sha256": "4ddcfe1656c011b311e3f22727941039c4173247248cc96e9170810277f4cfcb",
+    "chosen": "CT_SS",
+    "timing": "runs/x1-60-timing-v1/raw/timing_result.json",
+    "timing_sha256": "9153233d7deb8dee02f03fac519e5b6b3631fc22971ed5099d1e71a85683739f",
+    "timing_gate_pass": true,
+    "timing_worst_seconds_5060ti": 30.45869085751474,
+    "limits": "Development evidence with selection across P1, P2, L1 and X1; hardware partly confounded; T4 unverified."
+  }
+}

@@ -1,0 +1,214 @@
+{
+  "experiment": "P1-P2-v1",
+  "recorded_date_IST": "2026-10-31",
+  "timing": "After E1 and its reviews; before any P1 or P2 fitting",
+  "e1_protocol_sha256": "ad0f1f75abac558dca4a2e1459463b8ce71200ad7b56c0bb7acb82cbfad8d1e8",
+  "recipe": {
+    "epochs": 20,
+    "train_batch_size": 32,
+    "eval_batch_size": 64,
+    "backbone_lr": 0.0001,
+    "head_lr": 0.001,
+    "weight_decay": 0.01,
+    "warmup_epochs": 2,
+    "ema_decay": 0.999,
+    "input_size": 224,
+    "inference_precision": "FP32, TF32 disabled, FP64 sigmoid",
+    "split_manifest_sha256": "995e2185f6fd8f6303c58ff58b6e421a9ec563cf58e094e9ddd19b7fcc85abfc"
+  },
+  "jobs": [
+    {
+      "stage": "p1",
+      "fold": 2,
+      "architecture": "convnext_tiny",
+      "seed": 17,
+      "loss": "bce"
+    },
+    {
+      "stage": "p1",
+      "fold": 2,
+      "architecture": "swin_t",
+      "seed": 17,
+      "loss": "bce"
+    },
+    {
+      "stage": "p1",
+      "fold": 3,
+      "architecture": "convnext_tiny",
+      "seed": 17,
+      "loss": "bce"
+    },
+    {
+      "stage": "p1",
+      "fold": 3,
+      "architecture": "swin_t",
+      "seed": 17,
+      "loss": "bce"
+    },
+    {
+      "stage": "p1",
+      "fold": 4,
+      "architecture": "convnext_tiny",
+      "seed": 17,
+      "loss": "bce"
+    },
+    {
+      "stage": "p1",
+      "fold": 4,
+      "architecture": "swin_t",
+      "seed": 17,
+      "loss": "bce"
+    },
+    {
+      "stage": "p1",
+      "fold": 0,
+      "architecture": "convnext_tiny",
+      "seed": 29,
+      "loss": "bce"
+    },
+    {
+      "stage": "p1",
+      "fold": 1,
+      "architecture": "convnext_tiny",
+      "seed": 29,
+      "loss": "bce"
+    },
+    {
+      "stage": "p1",
+      "fold": 2,
+      "architecture": "convnext_tiny",
+      "seed": 29,
+      "loss": "bce"
+    },
+    {
+      "stage": "p1",
+      "fold": 3,
+      "architecture": "convnext_tiny",
+      "seed": 29,
+      "loss": "bce"
+    },
+    {
+      "stage": "p1",
+      "fold": 4,
+      "architecture": "convnext_tiny",
+      "seed": 29,
+      "loss": "bce"
+    },
+    {
+      "stage": "p2",
+      "fold": 0,
+      "architecture": "convnext_tiny",
+      "seed": 17,
+      "loss": "gce_q07"
+    },
+    {
+      "stage": "p2",
+      "fold": 1,
+      "architecture": "convnext_tiny",
+      "seed": 17,
+      "loss": "gce_q07"
+    },
+    {
+      "stage": "p2",
+      "fold": 0,
+      "architecture": "convnext_tiny",
+      "seed": 17,
+      "loss": "smooth_01"
+    },
+    {
+      "stage": "p2",
+      "fold": 1,
+      "architecture": "convnext_tiny",
+      "seed": 17,
+      "loss": "smooth_01"
+    }
+  ],
+  "evaluation_epochs": [
+    20
+  ],
+  "max_wall_seconds": 21600,
+  "combination_primary": "equal logit mean, chosen post-E1",
+  "combination_secondary": "equal probability mean",
+  "candidates": {
+    "A": [
+      "convnext_tiny:17:bce",
+      "swin_t:17:bce"
+    ],
+    "B": [
+      "convnext_tiny:17:bce",
+      "convnext_tiny:29:bce"
+    ],
+    "C": [
+      "convnext_tiny:17:bce"
+    ]
+  },
+  "p1_gate": {
+    "minimum_mean_delta_J04": 0.003,
+    "minimum_strict_positive_folds": 4,
+    "seed_pair_must_exceed_arch_pair_by": 0.002,
+    "review_if_fresh_swin_original_advantage_exceeds": 0.005,
+    "fresh_folds": [
+      2,
+      3,
+      4
+    ],
+    "selection_used_folds": [
+      0,
+      1
+    ],
+    "rule": "Only passing ensembles eligible. Neither passes -> C. One passes -> that one. Both pass -> A unless B-A > .002. Swin reversal blocks automatic final selection."
+  },
+  "losses": {
+    "bce": "Unchanged E1 BCEWithLogits under AMP",
+    "gce_q07": "mean(-expm1(0.7*logsigmoid((2*y-1)*z.float()))/0.7), FP32 loss arithmetic",
+    "smooth_01": "BCEWithLogits(z,0.9*y+0.05) under AMP; epsilon=0.1"
+  },
+  "p2_gate": {
+    "both_folds_original_auc_strictly_improves": true,
+    "both_folds_J04_strictly_improves": true,
+    "minimum_mean_delta_J04": 0.004,
+    "if_two_pass": "Choose larger mean delta J; exact tie favors smooth_01",
+    "confirmation": "At most one loss, Conv17 folds 2,3,4, mean delta J>=.003 and >=2/3 strictly positive folds",
+    "combination_rule": "No promotion of changed final ensemble without a new written bounded complete-procedure comparison. No automatic reuse of BCE ensemble evidence."
+  },
+  "analysis": {
+    "bootstrap_draws": 2000,
+    "bootstrap_seed": 20261101,
+    "unit": "Paired source groups resampled within fold, identical draws across arms and conditions",
+    "aggregation": "Unweighted mean within-fold AUC primary; pooled secondary",
+    "report_separately": [
+      "all five folds",
+      "fresh folds 2,3,4",
+      "selection-used folds 0,1"
+    ],
+    "limits": "Conditional data uncertainty, not training variance or selection correction; overlapping fits and source-group limitations remain"
+  },
+  "p3": {
+    "fixture_images": 3000,
+    "fixture_partition": "pool only, deterministic sorted IDs",
+    "cold_gpu_processes": 3,
+    "cpu_processes": 1,
+    "cpu_timeout_seconds": 1800,
+    "cpu_fallback_max_seconds": 1200,
+    "gpu_claim": "5060Ti only until directly measured on T4",
+    "checks": [
+      "exact IDs/rows",
+      "finite probabilities",
+      "replay bytes",
+      "checkpoint loading",
+      "wall time",
+      "peak memory"
+    ],
+    "fallback": "Enable only CUDA-unavailable fallback if exact-bundle CPU run correct and <=1200s. Warn on stderr. Never catch arbitrary CUDA errors."
+  },
+  "reuse": "E1 Conv17 and Swin17 folds0,1 and E1 Conv17 BCE controls only. No E0 trained initialization.",
+  "initialization": "Original published named ImageNet1K_V1 weights, full SHA256 checked offline before every run",
+  "resume": "Completed-fit boundary only; incomplete fit restarts from original ImageNet initialization",
+  "exclusions": [
+    "H before written final-procedure freeze",
+    "test pixels",
+    "local GPU",
+    "new augmentation/TTA/resolution/capacity search",
+    "publication/submission/purchases"
+  ]
+}

@@ -1,0 +1,168 @@
+{
+  "experiment": "X1-v2 bounded final exploration: inference-budget allocation",
+  "recorded_date_IST": "2026-11-01",
+  "timing": "Before any X1 fit, probe or score; before the holdout is opened. Supersedes x1_protocol.json (v1 kept unchanged).",
+  "status": "Gates fixed in v2. Runner, host registry, assignment file and packages not yet built. Nothing launched.",
+  "question": "Within a provisional compute budget, does spending it on extra seeds or larger ImageNet-1K backbones beat the frozen A_L pair, as a comparison of complete procedures?",
+  "incumbent": {
+    "name": "A_L",
+    "members": [
+      "convnext_tiny s17 gce_q07",
+      "swin_t s17 gce_q07"
+    ],
+    "gflops": 8.95,
+    "five_fold_original_auc": 0.90469,
+    "five_fold_J04": 1.265104,
+    "source": "runs/l1-primary-v1/analysis.json; predictions on all five folds already saved"
+  },
+  "recipe": "Identical to L1/final-v2 for every new fit: 20 epochs, batch 32, AdamW backbone 1e-4 / head 1e-3, weight decay 0.01 with bias/1-D exclusions, 2 warm-up epochs then cosine, EMA 0.999 with buffer copy, AMP training, A1-light augmentation, GCE q=0.7, FP32 TF32-off evaluation, FP64 sigmoid, unchanged 54-condition suite, fresh named torchvision ImageNet1K_V1 weights.",
+  "arms": {
+    "S_seeds": {
+      "purpose": "Seed diversity for the frozen architectures",
+      "jobs": [
+        "convnext_tiny s29 gce_q07 folds 0-4",
+        "swin_t s29 gce_q07 folds 0-4"
+      ],
+      "fits": 10,
+      "note": "All five folds are new data for seed-29 models; no screen stage.",
+      "eligibility": "Seed-29 members have no separate arm gate. Completing all five folds under the declared recipe makes them eligible for the final ensemble gate."
+    },
+    "C_capacity_screen": {
+      "purpose": "Larger backbone of the same family",
+      "jobs": [
+        "convnext_small s17 gce_q07 folds 0,1",
+        "convnext_base s17 gce_q07 folds 0,1",
+        "swin_s s17 gce_q07 folds 0,1"
+      ],
+      "fits": 6,
+      "gate": "Versus same-family Tiny-GCE s17 on the same folds: original AUC and J0.4 strictly higher on both folds, mean delta J0.4 >= +0.005.",
+      "promotion": "At most one ConvNeXt size (larger mean delta J; if within 0.002, the smaller) plus swin_s if it passes."
+    },
+    "C_capacity_confirm": {
+      "jobs": "Each promoted model, s17 gce_q07, folds 2,3,4",
+      "fits_max": 6,
+      "gate": "Mean delta J0.4 versus same-family Tiny-GCE >= +0.003, at least 2 of 3 strictly positive, mean delta original AUC >= 0."
+    }
+  },
+  "candidate_final_ensembles": {
+    "rule": "Equal logit mean of listed members. The seven named candidates are the complete X1 candidate set; nothing else is selectable. Only members that completed all five folds under the declared recipe (and, for capacity members, passed screen and confirmation) are eligible.",
+    "A_L": {
+      "members": [
+        "CT17",
+        "ST17"
+      ],
+      "gflops": 8.95
+    },
+    "A_L4": {
+      "members": [
+        "CT17",
+        "CT29",
+        "ST17",
+        "ST29"
+      ],
+      "gflops": 17.9
+    },
+    "A_L3c": {
+      "members": [
+        "CT17",
+        "CT29",
+        "ST17"
+      ],
+      "gflops": 13.41,
+      "note": "Changes architecture weighting to 2/3 ConvNeXt. Report the diagnostic (2*CT17 + ST17)/3 from existing logits alongside it; that diagnostic is not selectable."
+    },
+    "CS_ST": {
+      "members": [
+        "CS17",
+        "ST17"
+      ],
+      "gflops": 13.17
+    },
+    "CS_SS": {
+      "members": [
+        "CS17",
+        "SS17"
+      ],
+      "gflops": 17.42
+    },
+    "CB_ST": {
+      "members": [
+        "CB17",
+        "ST17"
+      ],
+      "gflops": 19.85
+    },
+    "CT_SS": {
+      "members": [
+        "CT17",
+        "SS17"
+      ],
+      "gflops": 13.2
+    }
+  },
+  "compute_cap": {
+    "max_total_gflops": 20.5,
+    "status": "Provisional compute cap. GFLOPs are model metadata, not latency. T4 runtime is unverified for every candidate, including A_L.",
+    "no_larger_ensembles": "The v1 override admitting ensembles above the cap is withdrawn. X1 is limited to the seven named candidates."
+  },
+  "final_choice_gate": {
+    "versus_A_L": "A candidate is eligible only if: mean delta J0.4 versus A_L >= +0.002 over five folds (inclusive); at least 4 of 5 folds strictly positive; mean delta original AUC >= 0 (inclusive); and, if it contains a capacity member, mean delta J0.4 > 0 over folds 2,3,4.",
+    "selection_steps": [
+      "1. Filter the six non-incumbent named candidates by the gate above.",
+      "2. Find the largest five-fold mean J0.4 among eligible candidates.",
+      "3. Keep candidates whose mean J0.4 is within 0.002 of that maximum (inclusive).",
+      "4. Choose the lowest total GFLOPs among them.",
+      "5. Exact remaining tie: fixed order CT_SS, CS_ST, A_L3c, CS_SS, A_L4, CB_ST.",
+      "6. No eligible candidate: A_L, which is the fallback and does not take part in steps 1-5.",
+      "7. Apply the timing gate to the chosen candidate."
+    ],
+    "reporting": "Paired group bootstrap, 2,000 draws, seed 20261103, within fold, identical draws across candidates; reported, not gating. The +0.002 margin is a practical threshold, not a correction for repeated selection."
+  },
+  "not_included_and_why": {
+    "gce_q_tuning": "q=0.7 was a single dose, but expected effect of re-tuning is small relative to the added selection optimism; revisit only if every X1 arm fails.",
+    "longer_or_shorter_schedule": "No local mechanism; memorization is controlled by GCE.",
+    "input_resolution": "Downsampling to 112 px did not hurt; fine detail is not the bottleneck.",
+    "augmentation_strength": "Robustness proxy sits about 0.004 below original AUC; little to gain.",
+    "flip_TTA": "Doubles inference cost; seeds are the stronger use of the same budget.",
+    "third_architecture_family": "Three-family BCE ensemble added about +0.001; low value.",
+    "training_label_cleaning": "Overlaps the GCE mechanism; risks removing hard correct examples.",
+    "foundation_models_external_data_pseudo_labels": "Ineligible or prohibited."
+  },
+  "devices": {
+    "verified": "One RTX 5060 Ti at <GPU_HOST> (<USER>), UUID GPU-4f7dd3a1-55b5-1d57-d0ad-00186da5363e.",
+    "user_reported_unverified": "Two more RTX 5060 Ti (.34, .68) for three in total, and five RTX 4060 Ti 16 GB (.31, .24, .19, .72, .45). Each must pass the read-only probe and resource readiness check before use.",
+    "policy": "Hardware and seed or model size are partly confounded: incumbent fits ran on the primary 5060 Ti, seed-29 fits are assigned to 4060 Ti hosts, and capacity fits use both families. PyTorch does not guarantee reproducibility across platforms. X1 compares complete procedures and does not attribute a gain solely to seed or size. Every receipt records device UUID, model, driver, library versions, precision flags, skipped AMP steps and initialization and recipe hashes. A fixed numerical compatibility fixture is run on each host to catch setup errors; it cannot show that training trajectories agree. The final stage runs on the primary 5060 Ti."
+  },
+  "selection_limits": "All five development folds already informed P1, P2 and L1. X1 adds candidates and therefore optimism. The stricter +0.002 final margin partly offsets this. The single holdout readout evaluates whichever procedure is frozen.",
+  "amends": {
+    "file": "experiments/x1_protocol.json",
+    "sha256": "15c475ef69c2f6c2dc89b7bb1d84132d3e7b4158ac723507c8cb22c1ffaef02a",
+    "reason": "Accepts all five findings of gpt61-review-x1-plan-2026-11-01.md before any X1 fit or score exists."
+  },
+  "timing_gate": {
+    "stage": "After the final choice, before writing the final-stage freeze and before opening H.",
+    "bundle": "The chosen candidate built from its fold-0 development checkpoints (same architectures, member count and combination as the final procedure).",
+    "fixture": "3,000 distinct synthetic 224x224 JPEG files generated locally; no organizer images.",
+    "command": "The complete intended CLI in fresh processes, FP32, all members, including startup, model loading, decoding and CSV writing.",
+    "measured_5060ti_rule": "On the primary RTX 5060 Ti, worst of three fresh-process runs <= 60 s. A provisional safety rule chosen now; not T4 compliance.",
+    "optional_t4_rule": "If the user provides a T4, the same command on the T4 with worst of three fresh-process runs <= 180 s replaces the 5060 Ti rule.",
+    "on_failure_or_unavailable": "If the chosen candidate fails the applicable rule, take the next candidate in selection order that passes all gates and the timing rule; if none, keep A_L. If no T4 is available, apply the 5060 Ti rule and state in the report that T4 runtime is unverified. Never describe either as measured T4 compliance.",
+    "not_a_selection_step": "Timing of final all-data weights in the release check is a release result, not another selection opportunity."
+  },
+  "resource_readiness": {
+    "when": "After environment setup on each host and before any scored fit.",
+    "what": "For every assigned architecture/device pair: synthetic inputs at training batch 32 through forward, backward, AdamW state creation and EMA update under AMP and the 0.75 allocator cap; FP32 evaluation at batch 64; save and reload the checkpoint through the versioned CLI. Record peak allocated and reserved memory.",
+    "on_failure": "Stop that assignment and report it. No automatic batch-size, precision or accumulation change. A capacity candidate missing required folds under the declared recipe is withheld.",
+    "environment": "Record the full driver version and run an actual CUDA check in the pinned environment; GPU recognition alone is insufficient.",
+    "not_evidence": "Readiness checks are not scored fits and never selection evidence."
+  },
+  "runner_contract": [
+    "Do not edit deepfake_core.py, train_p1.py, train_l1.py or any final-v1/v2 file; final-v2 launch inputs must stay valid.",
+    "A versioned builder, optimizer grouping, bundle loader and CLI support convnext_small, convnext_base and swin_s together. Test that every trainable parameter is in exactly one optimizer group, head parameters get the head learning rate, and the one-output head survives save and reload.",
+    "Receipts bind source hashes, protocol hash, pool manifest, named weight file SHA-256, logical fit ID, attempt ID and assignment revision.",
+    "A disconnected collector reconnects to its durable job before any spare starts another attempt. Amendments never leave two hosts owning one logical fit. Duplicate committed receipts for one fit ID: the first committed receipt by timestamp wins, never the better score.",
+    "Every incoming prediction file passes canonical checks: exact unique IDs per fold, frozen labels and group IDs, canonical condition names and weights, saved probabilities equal FP64 sigmoid of saved logits.",
+    "If the final ensemble changes, final-v3 preserves final-v2 behaviour: atomic output replacement, accepted template flags, alias script, checkpoint reload, holdout interruption policy and release checks, while supporting the new members."
+  ],
+  "counts": "Wave 1: 16 fits. Confirmation: 0-6. Final stage: 4, 6 or 8 fits. Total new training runs: 20-30. Timings are estimates until measured."
+}
