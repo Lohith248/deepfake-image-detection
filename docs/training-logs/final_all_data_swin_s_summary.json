@@ -1,0 +1,25 @@
+{
+  "stage": "all_data",
+  "architecture": "swin_s",
+  "seed": 17,
+  "loss": "gce_q07",
+  "epochs": 20,
+  "fit_images": 7000,
+  "train_seconds": 769.1687022782862,
+  "wall_seconds": 771.2290021199733,
+  "checkpoint_sha256": "97f47cee28603950a65e1efd89a051794f843f073d459276e07ca578ec0e9917",
+  "checkpoint_bytes": 195921586,
+  "provenance": {
+    "architecture": "swin_s",
+    "enum": "Swin_S_Weights.IMAGENET1K_V1",
+    "url": "https://download.pytorch.org/models/swin_s-5e29d889.pth",
+    "sha256": "5e29d889356a51648611f542380eb4f3c4b4c84dc61933cdfbd2afc14a8235b2",
+    "bytes": 199005311,
+    "pretraining": "torchvision documented ImageNet-1K recipe",
+    "code_license": "torchvision BSD-3-Clause; weight/data terms separate",
+    "documentation": "https://docs.pytorch.org/vision/0.22/models/generated/torchvision.models.swin_s.html"
+  },
+  "peak_allocated_mib": 4346.35546875,
+  "amp_skipped_steps": 0,
+  "pool_reload_max_probability_difference": 0.0
+}
